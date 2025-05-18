@@ -1,1 +1,1 @@
-# Jupiter Python package
+from .client import Jupiter
