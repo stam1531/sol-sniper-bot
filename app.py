@@ -30,12 +30,14 @@ def start_bot():
     global stop_bot
     stop_bot = False
     status.info("Ξεκινάει το bot...")
-secret_key = json.loads(private_key_array)
+
     try:
-        keypair = Keypair.from_bytes(bytes(secret_key))
-    except Exception as e:
-        status.error(f"Λάθος Private Key: {e}")
-        return
+    secret_key = json.loads(private_key_array)
+    keypair = Keypair.from_secret_key(bytes(secret_key))
+except Exception as e:
+    status.error(f"Λάθος Private Key: {e}")
+    return
+    
 
     try:
         client = Client("https://api.mainnet-beta.solana.com")
