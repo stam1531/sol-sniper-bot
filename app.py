@@ -30,7 +30,7 @@ def start_bot():
     global stop_bot
     stop_bot = False
     status.info("Ξεκινάει το bot...")
-
+secret_key = json.loads(private_key_array)
     try:
         keypair = Keypair.from_bytes(bytes(secret_key))
     except Exception as e:
