@@ -3,7 +3,7 @@ import requests
 import base58
 import json
 import time
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 from solana.rpc.api import Client
 from jupiter_python import Jupiter
 
