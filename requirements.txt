@@ -3,4 +3,4 @@ requests
 solana
 python-dotenv
 base58
-git+https://github.com/phantom-labs/jupiter-python.git
+git+https://github.com/phantom-labs/jupiter-python.git@main#egg=jupiter-python
