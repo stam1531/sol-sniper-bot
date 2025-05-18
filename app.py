@@ -32,7 +32,7 @@ def start_bot():
     status.info("Ξεκινάει το bot...")
 
     try:
-        keypair = Keypair.from_secret_key(bytes(private_key_array))
+        keypair = Keypair.from_bytes(bytes(secret_key))
     except Exception as e:
         status.error(f"Λάθος Private Key: {e}")
         return
