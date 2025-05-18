@@ -1,61 +1,9 @@
-def start_bot():
-    global stop_bot
-    stop_bot = False
-    status.info("Ξεκινάει το bot...")
-
-    try:
-        secret_key = json.loads(private_key_array)
-        keypair = Keypair.from_secret_key(bytes(secret_key))
-    except Exception as e:
-        status.error(f"Λάθος Private Key: {e}")
-        return
-
-    try:
-        client = Client("https://api.mainnet-beta.solana.com")
-        jupiter = Jupiter(client)
-        wallet = keypair.pubkey()
-        st.success(f"Wallet συνδέθηκε: {wallet}")
-    except Exception as e:
-        status.error(f"Σφάλμα στο wallet init: {e}")
-        return
-
-    seen = set()
-
-    while not stop_bot:
-        try:
-            r = requests.get(
-                "https://public-api.birdeye.so/public/tokenlist?sort_by=volume1h",
-                headers={"X-API-KEY": api_key}
-            )
-            tokens = r.json()["data"]["tokens"]
-        except Exception as e:
-            status.error(f"Σφάλμα στο API Birdeye: {e}")
-            time.sleep(5)
-            continue
-
-        for t in tokens[:10]:
-            if stop_bot:
-                status.warning("Bot manually stopped.")
-                return
-
-            address = t["address"]
-            name = t["symbol"]
-            liq = t.get("liquidity", 0)
-
-            if address in seen or liq < 8000:
-                continue
-
-            seen.add(address)
- status.info(f"Token εντοπίστηκε: {name}")
-
-Ορίστε ο πλήρης, διορθωμένος κώδικας του `app.py` για το Solana sniping bot σου, με όλες τις απαραίτητες βιβλιοθήκες και σωστή μορφοποίηση (indentation):
-
-```python
 import streamlit as st
 import requests
+import base58
 import json
 import time
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 from solana.rpc.api import Client
 from jupiter_python import Jupiter
 
@@ -82,7 +30,7 @@ def start_bot():
 
     try:
         secret_key = json.loads(private_key_array)
-        keypair = Keypair.from_secret_key(bytes(secret_key))
+        keypair = Keypair.from_bytes(bytes(secret_key))
     except Exception as e:
         status.error(f"Λάθος Private Key: {e}")
         return
@@ -90,7 +38,7 @@ def start_bot():
     try:
         client = Client("https://api.mainnet-beta.solana.com")
         jupiter = Jupiter(client)
-        wallet = keypair.public_key
+        wallet = keypair.pubkey()
         st.success(f"Wallet συνδέθηκε: {wallet}")
     except Exception as e:
         status.error(f"Σφάλμα στο wallet init: {e}")
