@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import time
-from solders.keypair import Keypair
+from solana.keypair import Keypair
 from solana.rpc.api import Client
 from jupiter_python import Jupiter
 
