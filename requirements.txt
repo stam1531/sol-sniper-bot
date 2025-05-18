@@ -3,4 +3,3 @@ requests
 solana
 python-dotenv
 base58
-jupiter-python @ git+https://github.com/phantom-labs/jupiter-python
