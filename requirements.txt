@@ -3,5 +3,4 @@ requests
 solana
 python-dotenv
 base58
-jupiter-python
-# trigger redeploy
+jupiter_python
