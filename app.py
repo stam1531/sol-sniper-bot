@@ -46,7 +46,7 @@ def start_bot():
                 continue
 
             seen.add(address)
-            status.info(f"Token εντοπίστηκε: {name
+ status.info(f"Token εντοπίστηκε: {name}")
 
 Ορίστε ο πλήρης, διορθωμένος κώδικας του `app.py` για το Solana sniping bot σου, με όλες τις απαραίτητες βιβλιοθήκες και σωστή μορφοποίηση (indentation):
 
