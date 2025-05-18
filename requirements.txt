@@ -1,5 +1,7 @@
-streamlit
+streamlit==1.32.0
 requests
-solana
+solana==0.29.0
+solders==0.16.5
 python-dotenv
 base58
+git+https://github.com/phantom-labs/jupiter-py
