@@ -1,5 +1,4 @@
 streamlit
-solana
-bip_utils
+solders
+pytonlib
 requests
-jupiter-python
