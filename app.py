@@ -1,98 +1,40 @@
 import streamlit as st
-import requests
-import json
-import time
 import threading
-from bip_utils import Bip39SeedGenerator, Bip44, Bip44Coins
-from solana.keypair import Keypair
-from solana.rpc.api import Client
-from jupiter_python import Jupiter
+from solders.keypair import Keypair
+from solders.pubkey import Pubkey
+import base64
 
-stop_bot = False
+# Σταθερές
+PRIVATE_KEY_BYTES = [
+    91, 62, 76, 49, 14, 87, 155, 200, 72, 135, 198, 132, 24, 54, 124, 127,
+    46, 158, 29, 8, 145, 148, 3, 78, 211, 58, 124, 77, 202, 144, 16, 30,
+    173, 186, 160, 244, 5, 152, 100, 58, 164, 60, 52, 117, 126, 53, 60, 75,
+    199, 136, 23, 2, 204, 133, 157, 1, 219, 149, 5, 213, 138, 161, 60, 181
+]
 
-st.set_page_config(page_title="Sol Sniper", layout="centered")
-st.title("Solana Meme Token Sniper")
-st.markdown("**Auto-buy 0.5 SOL | Auto-sell x multiplier | Stop Loss -30%**")
+# Δημιουργία keypair από byte array
+try:
+    keypair = Keypair.from_bytes(bytes(PRIVATE_KEY_BYTES))
+except Exception as e:
+    st.error(f"Λάθος στο Keypair: {e}")
+    st.stop()
 
-api_key = st.text_input("Birdeye API Key", type="password")
-mnemonic = st.text_area("12-word Mnemonic (Seed Phrase)", height=100)
-slippage = st.slider("Slippage (%)", 0.1, 10.0, 3.0)
-auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 3, 5, 10], index=2)
-status = st.empty()
+# UI
+st.title("Solana Sniping Bot")
+st.markdown("Ready to snipe on Solana")
 
-if st.button("Stop Bot"):
-    stop_bot = True
+# Κατάσταση bot
+bot_running = st.empty()
 
-def start_bot(status):
-    global stop_bot
-    stop_bot = False
-
+def start_bot():
     try:
-        # Μετατροπή mnemonic σε Keypair
-        seed_bytes = Bip39SeedGenerator(mnemonic).Generate()
-        bip44 = Bip44.FromSeed(seed_bytes, Bip44Coins.SOLANA)
-        private_key = bip44.PrivateKey().Raw().ToBytes()
-        keypair = Keypair.from_secret_key(private_key)
+        print("Ξεκινάει το bot...")
+        print(f"Wallet Address: {keypair.pubkey()}")
+        print("Εδώ θα μπουν οι συναλλαγές μέσω Jupiter API...")
+        # TODO: ενσωμάτωση πραγματικών συναλλαγών
     except Exception as e:
-        status.error(f"Σφάλμα στο keypair: {e}")
-        return
+        print(f"Λάθος κατά την εκκίνηση bot: {e}")
 
-    client = Client("https://api.mainnet-beta.solana.com")
-    jupiter = Jupiter(client)
-    seen = set()
-
-    while not stop_bot:
-        try:
-            response = requests.get(
-                "https://public-api.birdeye.so/public/tokenlist?sort_by=volume1h",
-                headers={"X-API-KEY": api_key}
-            )
-            tokens = response.json()["data"]["tokens"]
-        except Exception as e:
-            print(f"API Error: {e}")
-            time.sleep(5)
-            continue
-
-        for t in tokens[:10]:
-            if stop_bot:
-                print("Bot manually stopped.")
-                return
-
-            address = t["address"]
-            name = t["symbol"]
-            liq = t.get("liquidity", 0)
-
-            if address in seen or liq < 8000:
-                continue
-
-            seen.add(address)
-            print(f"Token εντοπίστηκε: {name} (liq {liq}). Εκτελείται αγορά...")
-
-            try:
-                swap = jupiter.swap(
-                    owner=keypair,
-                    input_mint_address="So11111111111111111111111111111111111111112",
-                    output_mint_address=address,
-                    in_amount=int(0.5 * 1e9),
-                    slippage=slippage / 100
-                )
-                print(f"Αγοράστηκε 0.5 SOL από {name}")
-            except Exception as e:
-                print(f"Αποτυχία αγοράς {name}: {e}")
-                continue
-
-            for i in range(10):
-                if stop_bot:
-                    return
-                time.sleep(1)
-                print(f"{name} tracking... [{i+1}/10]")
-
-            print(f"{name} πωλήθηκε στο x{auto_sell_multiplier} ή stop loss")
-
-        time.sleep(5)
-
-if st.button("Start Sniping"):
-    if not api_key or not mnemonic:
-        st.error("Συμπλήρωσε API key και mnemonic")
-    else:
-        threading.Thread(target=start_bot, args=(status,)).start()
+if st.button("Start Bot"):
+    bot_running.text("Bot is running...")
+    threading.Thread(target=start_bot).start()
