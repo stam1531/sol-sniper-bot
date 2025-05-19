@@ -1,6 +1,5 @@
 streamlit
-requests
-base58
-solders==0.26.0
 solana
+bip_utils
+requests
 jupiter-python
