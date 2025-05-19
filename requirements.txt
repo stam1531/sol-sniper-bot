@@ -1,4 +1,4 @@
 streamlit
-solders
-pytonlib
 requests
+solders
+bip-utils
