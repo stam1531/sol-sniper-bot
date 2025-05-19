@@ -13,16 +13,13 @@ stop_bot = False
 st.set_page_config(page_title="Sol Sniper", layout="centered")
 st.title("Solana Meme Token Sniper")
 st.markdown("**Auto-buy 0.5 SOL | Auto-sell x5 | Stop Loss -30%**")
-status = st.empty()
+
 api_key = st.text_input("Birdeye API Key")
+private_key_array = st.text_area("Wallet Private Key (byte array)", height=100)
 slippage = st.slider("Slippage (%)", 0.1, 10.0, 3.0)
 auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 5, 10], index=1)
-status = st.empty()
 
-# Ενσωματωμένο Private Key
-private_key_array = [124, 77, 202, 144, 16, 30, 173, 186, 160, 244, 5, 152,
-                     100, 58, 164, 60, 52, 117, 126, 53, 60, 75, 199, 136,
-                     23, 2, 204, 133, 157, 1, 219, 149, 5, 213, 138, 161, 60, 181]
+status = st.empty()
 
 if st.button("Stop Bot"):
     stop_bot = True
@@ -34,18 +31,20 @@ def start_bot(status):
     status.info("Ξεκινάει το bot...")
 
     try:
-        keypair = Keypair.from_secret_key(bytes(private_key_array))
+        key_list = json.loads(private_key_array)
+        secret_key = bytes(key_list)
+        keypair = Keypair.from_bytes(secret_key)
     except Exception as e:
-        status.error(f"Λάθος Private Key: {e}")
+        status.error("Λάθος Private Key: " + str(e))
         return
 
     try:
         client = Client("https://api.mainnet-beta.solana.com")
         jupiter = Jupiter(client)
         wallet = keypair.pubkey()
-        st.success(f"Wallet συνδέθηκε: {wallet}")
+        status.success("Wallet συνδέθηκε: " + str(wallet))
     except Exception as e:
-        status.error(f"Σφάλμα στο wallet init: {e}")
+        status.error("Σφάλμα στο wallet init: " + str(e))
         return
 
     seen = set()
@@ -58,7 +57,7 @@ def start_bot(status):
             )
             tokens = r.json()["data"]["tokens"]
         except Exception as e:
-            status.error(f"Σφάλμα στο API Birdeye: {e}")
+            status.error("Σφάλμα στο API Birdeye: " + str(e))
             time.sleep(5)
             continue
 
@@ -85,9 +84,9 @@ def start_bot(status):
                     in_amount=int(0.5 * 1e9),
                     slippage=slippage / 100
                 )
-                st.success(f"Αγοράστηκε 0.5 SOL από {name}")
+                status.success(f"Αγοράστηκε 0.5 SOL από {name}")
             except Exception as e:
-                st.error(f"Αποτυχία αγοράς {name}: {e}")
+                status.error(f"Αποτυχία αγοράς {name}: " + str(e))
                 continue
 
             for i in range(10):
@@ -96,14 +95,12 @@ def start_bot(status):
                 time.sleep(1)
                 st.write(f"{name} tracking... [{i+1}/10]")
 
-            st.success(f"{name} πωλήθηκε στο x{auto_sell_multiplier} ή stop loss")
+            status.success(f"{name} πωλήθηκε στο x{auto_sell_multiplier} ή stop loss")
 
         time.sleep(5)
 
 if st.button("Start Sniping"):
-    threading.Thread(target=start_bot, args=(status,)).start()
-    if not api_key:
-        st.error("Συμπλήρωσε API key")
+    if not api_key or not private_key_array:
+        st.error("Συμπλήρωσε API key και private key")
     else:
-        import threading
-        threading.Thread(target=start_bot).start()
+        threading.Thread(target=start_bot, args=(status,)).start()
