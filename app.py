@@ -4,93 +4,93 @@ import base58
 import json
 import time
 import threading
+
 from solders.keypair import Keypair
 from solana.rpc.api import Client
 from jupiter_python import Jupiter
 
 stop_bot = False
 
-st.set_page_config(page_title="Sol Sniper Bot", layout="centered")
+st.set_page_config(page_title="Sol Sniper", page_icon="⚡")
 st.title("Token Sniper")
 st.markdown("**Auto-buy 0.5 SOL | Auto-sell x5 | Stop Loss -30%**")
 
-api_key = st.text_input("Birdeye API Key", value="", type="password")
+api_key = st.text_input("Birdeye API Key")
+private_key_array = st.text_area("Wallet Private Key (byte array)", placeholder="[1,2,3,...]")
 slippage = st.slider("Slippage (%)", 0.1, 10.0, 3.0)
-auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 3, 5, 10], index=2)
+auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 3, 4, 5, 10])
 status = st.empty()
 
-# Ενσωματωμένο Private Key
-private_key_array = [
-    124, 77, 202, 144, 16, 30, 173, 186, 160, 244, 5, 152,
-    100, 58, 164, 60, 52, 117, 126, 53, 60, 75, 199, 136,
-    23, 2, 204, 133, 157, 1, 219, 149, 5, 213, 138, 161,
-    60, 181, 91, 62, 76, 49, 14, 87, 155, 200, 72, 135,
-    198, 132, 24, 54, 124, 127, 46, 158, 29, 8, 145, 148,
-    3, 78, 211, 58
-]
+if st.button("Stop Bot"):
+    stop_bot = True
 
-def start_bot():
+def start_bot(status):
     global stop_bot
+    seen = set()
+    client = Client("https://api.mainnet-beta.solana.com")
+
     try:
-        secret_key = bytes(private_key_array)
-        keypair = Keypair.from_bytes(secret_key)
+        secret_key = json.loads(private_key_array)
+        keypair = Keypair.from_bytes(bytes(secret_key))
     except Exception as e:
-        print(f"Λάθος Private Key: {e}")
+        status.error(f"Λάθος Private Key: {e}")
         return
 
-    client = Client("https://api.mainnet-beta.solana.com")
-    jupiter = Jupiter(keypair, slippage)
-
-    seen = set()
+    jup = Jupiter(keypair)
 
     while not stop_bot:
         try:
             headers = {"X-API-KEY": api_key}
-            response = requests.get("https://public-api.birdeye.so/public/last_tokens", headers=headers)
+            response = requests.get("https://public-api.birdeye.so/public/tokenlist?sort_by=volume_24h", headers=headers)
             tokens = response.json().get("data", [])
 
             for token in tokens:
-                if stop_bot:
-                    break
-
-                address = token["address"]
+                address = token.get("address")
                 liq = token.get("liquidity", 0)
-                name = token.get("name", "")
+                name = token.get("name", "N/A")
 
                 if address in seen or liq < 8000:
                     continue
 
                 seen.add(address)
-                print(f"Token εντοπίστηκε: {name} ({address})")
+                status.info(f"Token εντοπίστηκε: {name}")
 
-                buy_response = jupiter.buy(address, 0.5)
-                print(f"Αγορά: {buy_response}")
+                try:
+                    jup_route = jup.route("So11111111111111111111111111111111111111112", address, 0.5, slippage=slippage)
+                    if jup_route:
+                        swap_tx = jup.swap(jup_route)
+                        status.success(f"Αγοράστηκε: {name}")
+                        print(f"Αγοράστηκε: {name} στη διεύθυνση {address}")
 
-                entry_price = jupiter.get_price(address)
-                target_price = entry_price * auto_sell_multiplier
-                stop_loss = entry_price * 0.7
+                        target_price = jup_route.out_amount * auto_sell_multiplier
+                        stop_loss = jup_route.out_amount * 0.7
 
-                while True:
-                    current_price = jupiter.get_price(address)
-                    if current_price >= target_price:
-                        sell_response = jupiter.sell(address)
-                        print(f"Auto-Sell επιτυχές: {sell_response}")
-                        break
-                    elif current_price <= stop_loss:
-                        sell_response = jupiter.sell(address)
-                        print(f"Stop Loss ενεργοποιήθηκε: {sell_response}")
-                        break
+                        while True:
+                            price_check = requests.get(f"https://public-api.birdeye.so/public/price?address={address}", headers=headers)
+                            price = price_check.json().get("data", {}).get("value", 0)
 
-                    time.sleep(5)
+                            if price >= target_price:
+                                jup_route_sell = jup.route(address, "So11111111111111111111111111111111111111112", jup_route.out_amount, slippage=slippage)
+                                if jup_route_sell:
+                                    jup.swap(jup_route_sell)
+                                    status.success(f"Πωλήθηκε με κέρδος x{auto_sell_multiplier}: {name}")
+                                    break
 
+                            if price <= stop_loss:
+                                jup_route_sell = jup.route(address, "So11111111111111111111111111111111111111112", jup_route.out_amount, slippage=slippage)
+                                if jup_route_sell:
+                                    jup.swap(jup_route_sell)
+                                    status.error(f"Πωλήθηκε στο Stop Loss: {name}")
+                                    break
+
+                            time.sleep(5)
+
+                except Exception as e:
+                    status.error(f"Σφάλμα με το token {name}: {e}")
         except Exception as e:
-            print(f"Σφάλμα: {e}")
-            time.sleep(5)
+            status.error(f"Σφάλμα στο API ή στο loop: {e}")
+
+        time.sleep(10)
 
 if st.button("Start Sniping"):
-    stop_bot = False
-    threading.Thread(target=start_bot).start()
-
-if st.button("Stop Bot"):
-    stop_bot = True
-    print("Bot σταμάτησε.")
+    threading.Thread(target=start_bot, args=(status,)).start()
