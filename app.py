@@ -3,7 +3,8 @@ import requests
 import json
 import time
 import threading
-from solders.keypair import Keypair
+from bip_utils import Bip39SeedGenerator, Bip44, Bip44Coins
+from solana.keypair import Keypair
 from solana.rpc.api import Client
 from jupiter_python import Jupiter
 
@@ -14,17 +15,10 @@ st.title("Solana Meme Token Sniper")
 st.markdown("**Auto-buy 0.5 SOL | Auto-sell x multiplier | Stop Loss -30%**")
 
 api_key = st.text_input("Birdeye API Key", type="password")
+mnemonic = st.text_area("12-word Mnemonic (Seed Phrase)", height=100)
 slippage = st.slider("Slippage (%)", 0.1, 10.0, 3.0)
 auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 3, 5, 10], index=2)
 status = st.empty()
-
-# Το keypair σου (64 bytes)
-private_key_array = [
-    91, 62, 76, 49, 14, 87, 155, 200, 72, 135, 198, 132, 24, 54, 124, 127,
-    46, 158, 29, 8, 145, 148, 3, 78, 211, 58, 124, 77, 202, 144, 16, 30,
-    173, 186, 160, 244, 5, 152, 100, 58, 164, 60, 52, 117, 126, 53, 60, 75,
-    199, 136, 23, 2, 204, 133, 157, 1, 219, 149, 5, 213, 138, 161, 60, 181
-]
 
 if st.button("Stop Bot"):
     stop_bot = True
@@ -34,9 +28,13 @@ def start_bot(status):
     stop_bot = False
 
     try:
-        keypair = Keypair.from_bytes(bytes(private_key_array))
+        # Μετατροπή mnemonic σε Keypair
+        seed_bytes = Bip39SeedGenerator(mnemonic).Generate()
+        bip44 = Bip44.FromSeed(seed_bytes, Bip44Coins.SOLANA)
+        private_key = bip44.PrivateKey().Raw().ToBytes()
+        keypair = Keypair.from_secret_key(private_key)
     except Exception as e:
-        status.error(f"Λάθος Keypair: {e}")
+        status.error(f"Σφάλμα στο keypair: {e}")
         return
 
     client = Client("https://api.mainnet-beta.solana.com")
@@ -94,7 +92,7 @@ def start_bot(status):
         time.sleep(5)
 
 if st.button("Start Sniping"):
-    if not api_key:
-        st.error("Συμπλήρωσε API key")
+    if not api_key or not mnemonic:
+        st.error("Συμπλήρωσε API key και mnemonic")
     else:
         threading.Thread(target=start_bot, args=(status,)).start()
