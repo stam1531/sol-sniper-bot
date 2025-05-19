@@ -12,7 +12,7 @@ stop_bot = False
 st.set_page_config(page_title="Sol Sniper", layout="centered")
 st.title("Solana Meme Token Sniper")
 st.markdown("**Auto-buy 0.5 SOL | Auto-sell x5 | Stop Loss -30%**")
-
+status = st.empty()
 api_key = st.text_input("Birdeye API Key")
 slippage = st.slider("Slippage (%)", 0.1, 10.0, 3.0)
 auto_sell_multiplier = st.selectbox("Auto-Sell Multiplier", [2, 5, 10], index=1)
@@ -27,7 +27,7 @@ if st.button("Stop Bot"):
     stop_bot = True
     status.warning("Bot stopped")
 
-def start_bot():
+def start_bot(status):
     global stop_bot
     stop_bot = False
     status.info("Ξεκινάει το bot...")
