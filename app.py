@@ -100,6 +100,7 @@ def start_bot(status):
         time.sleep(5)
 
 if st.button("Start Sniping"):
+    threading.Thread(target=start_bot, args=(status,)).start()
     if not api_key:
         st.error("Συμπλήρωσε API key")
     else:
